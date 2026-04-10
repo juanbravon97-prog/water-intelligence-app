@@ -1,0 +1,102 @@
+{
+  "avicola": {
+    "nombre": "Avícola (Producción de Huevos)",
+    "icono": "🥚",
+    "procesos": [
+      {"nombre": "Lavado de huevos", "tipo": "Ambos", "ce_max": 2.0, "hint": "Agua que contacta el producto — requiere calidad sanitaria SAG"},
+      {"nombre": "Enfriamiento de galpones (cooling pads)", "tipo": "Consumidor", "ce_max": 3.0, "hint": "Alta evaporación, consumo invisible que muchos no miden"},
+      {"nombre": "Bebederos aves", "tipo": "Consumidor", "ce_max": 1.5, "hint": "Agua potable para consumo animal — CE crítica para producción"},
+      {"nombre": "Lavado de galpones", "tipo": "Ambos", "ce_max": 6.0, "hint": "Alta carga orgánica (guano), agua muy sucia"},
+      {"nombre": "Lavado de bandejas y cajas", "tipo": "Ambos", "ce_max": 4.0, "hint": "Lavado mecánico con detergente"},
+      {"nombre": "Sanitización de equipos", "tipo": "Consumidor", "ce_max": 1.0, "hint": "CIP, desinfectantes, agua de enjuague final"},
+      {"nombre": "Calderas / generación de vapor", "tipo": "Consumidor", "ce_max": 0.8, "hint": "Requiere agua blanda, riesgo de sarro e incrustaciones"},
+      {"nombre": "Torres de enfriamiento", "tipo": "Consumidor", "ce_max": 3.0, "hint": "Reposición por evaporación, ciclos de concentración"},
+      {"nombre": "Riego de áreas verdes", "tipo": "Consumidor", "ce_max": 4.0, "hint": "Sumidero potencial para agua reciclada"},
+      {"nombre": "Servicios sanitarios y comedor", "tipo": "Ambos", "ce_max": 1.0, "hint": "Personal de planta"}
+    ],
+    "bienvenida": "¡Bienvenido! Voy a guiarte para levantar los datos hídricos de tu avícola. Los mayores consumos suelen estar en lavado de huevos, enfriamiento de galpones y bebederos. Empecemos paso a paso.",
+    "tips": [
+      "💡 El agua de lavado de huevos tiene restricciones sanitarias estrictas del SAG. Necesitamos conocer su calidad actual.",
+      "💡 Los cooling pads evaporan grandes volúmenes — este es un consumo 'invisible' que muchas avícolas no miden.",
+      "💡 El guano genera agua residual con alta carga de nitrógeno y fósforo — dato clave para evaluar si se puede producir estruvita como fertilizante."
+    ]
+  },
+  "champinones": {
+    "nombre": "Champiñones (Agaricus bisporus)",
+    "icono": "🍄",
+    "procesos": [
+      {"nombre": "Compostaje Fase 1 (mojado)", "tipo": "Ambos", "ce_max": 8.0, "hint": "Fermentación aeróbica a 80°C, el mayor consumidor típico"},
+      {"nombre": "Pasteurización Fase 2", "tipo": "Ambos", "ce_max": 1.5, "hint": "Túneles, condensados relativamente limpios"},
+      {"nombre": "Riego de casing", "tipo": "Consumidor", "ce_max": 1.5, "hint": "Contacto directo con cultivo — CE crítica para primordios"},
+      {"nombre": "Humidificadores de salas", "tipo": "Consumidor", "ce_max": 1.0, "hint": "Aerosol fino en salas de cultivo"},
+      {"nombre": "Lavado de equipos y bandejas", "tipo": "Ambos", "ce_max": 6.0, "hint": "Estanterías, bandejas, maquinaria"},
+      {"nombre": "Lavado de camiones", "tipo": "Ambos", "ce_max": 6.0, "hint": "Transporte de compost y producto"},
+      {"nombre": "Torres de enfriamiento", "tipo": "Consumidor", "ce_max": 3.0, "hint": "Ciclos de concentración"},
+      {"nombre": "Calderas", "tipo": "Consumidor", "ce_max": 0.8, "hint": "Agua blanda"},
+      {"nombre": "Servicios sanitarios", "tipo": "Ambos", "ce_max": 1.0, "hint": "Personal"}
+    ],
+    "bienvenida": "¡Hola! Vamos a levantar los datos de tu planta de champiñones. Los puntos críticos son la CE del agua para riego de casing y la barrera microbiológica. Empecemos.",
+    "tips": [
+      "💡 La CE del agua de riego de casing no debe superar 1.5 dS/m o quemará los primordios.",
+      "💡 El filtro UV solo no elimina esporas de Aspergillus ni biofilm de Pseudomonas tolaasii.",
+      "💡 Los condensados de pasteurización suelen ser agua relativamente limpia — segregarla puede ahorrar tratamiento."
+    ]
+  },
+  "lactea": {
+    "nombre": "Industria Láctea",
+    "icono": "🥛",
+    "procesos": [
+      {"nombre": "CIP (limpieza en sitio)", "tipo": "Ambos", "ce_max": 1.0, "hint": "Mayor consumidor típico (50-70% del total), evaluar recuperación de enjuagues"},
+      {"nombre": "Pasteurización / UHT", "tipo": "Ambos", "ce_max": 1.5, "hint": "Intercambiadores de calor, condensados"},
+      {"nombre": "Enfriamiento de leche", "tipo": "Consumidor", "ce_max": 2.0, "hint": "Agua helada, torres de enfriamiento"},
+      {"nombre": "Lavado de camiones cisterna", "tipo": "Ambos", "ce_max": 4.0, "hint": "Alta frecuencia, agua con residuos lácteos"},
+      {"nombre": "Calderas / vapor", "tipo": "Consumidor", "ce_max": 0.8, "hint": "Agua blanda obligatoria"},
+      {"nombre": "Lavado de pisos", "tipo": "Ambos", "ce_max": 6.0, "hint": "Áreas de producción, carga orgánica variable"},
+      {"nombre": "Servicios sanitarios", "tipo": "Ambos", "ce_max": 1.0, "hint": "Personal de planta"}
+    ],
+    "bienvenida": "¡Bienvenido! En la industria láctea, el CIP suele representar el 50-70% del consumo de agua. Vamos a mapear todo tu sistema paso a paso.",
+    "tips": [
+      "💡 Recuperar el último enjuague del CIP y usarlo como primer enjuague del siguiente ciclo puede ahorrar 15-25% del agua de lavado.",
+      "💡 El agua residual láctea tiene alta DBO — un reactor anaeróbico puede generar biogás para la caldera."
+    ]
+  },
+  "apr": {
+    "nombre": "Agua Potable Rural (APR)",
+    "icono": "💧",
+    "procesos": [
+      {"nombre": "Captación (pozo o fuente superficial)", "tipo": "Generador", "ce_max": 99, "hint": "Fuente principal de agua cruda"},
+      {"nombre": "Cloración / desinfección", "tipo": "Consumidor", "ce_max": 1.0, "hint": "Sistema de dosificación de cloro"},
+      {"nombre": "Almacenamiento (estanque elevado)", "tipo": "Ambos", "ce_max": 1.0, "hint": "Volumen de regulación"},
+      {"nombre": "Red de distribución", "tipo": "Consumidor", "ce_max": 1.0, "hint": "Pérdidas por fugas = agua no contabilizada"},
+      {"nombre": "Retrolavado de filtros", "tipo": "Ambos", "ce_max": 3.0, "hint": "Si tienen filtros de arena o multimedia"}
+    ],
+    "bienvenida": "¡Hola! Vamos a diagnosticar tu sistema de APR. Los principales desafíos suelen ser: agua no contabilizada (fugas), calidad de la fuente, y eficiencia de la cloración.",
+    "tips": [
+      "💡 Si la diferencia entre agua producida y agua facturada supera el 30%, hay fugas significativas en la red.",
+      "💡 Medir cloro residual en el punto más lejano de la red es obligatorio según normativa."
+    ]
+  },
+  "agricola": {
+    "nombre": "Agricultura de Riego",
+    "icono": "🌾",
+    "procesos": [
+      {"nombre": "Riego por goteo / cinta", "tipo": "Consumidor", "ce_max": 2.5, "hint": "CE crítica para el cultivo, riesgo de taponamiento de emisores"},
+      {"nombre": "Riego por aspersión", "tipo": "Consumidor", "ce_max": 3.0, "hint": "Mayor evaporación, deposición de sales en hojas"},
+      {"nombre": "Fertirrigación", "tipo": "Consumidor", "ce_max": 3.0, "hint": "Inyección de fertilizantes al agua de riego"},
+      {"nombre": "Lavado de fruta post-cosecha", "tipo": "Ambos", "ce_max": 1.5, "hint": "Si aplica — agua que contacta producto"},
+      {"nombre": "Preparación de fitosanitarios", "tipo": "Consumidor", "ce_max": 1.0, "hint": "Agua limpia para mezcla de agroquímicos"}
+    ],
+    "bienvenida": "¡Hola! Vamos a evaluar tu sistema de riego. En Chile, con el estrés hídrico creciente, optimizar el uso del agua de riego es cada vez más crítico. Empecemos.",
+    "tips": [
+      "💡 La salinización progresiva del suelo es invisible hasta que es demasiado tarde. Medir CE del agua y del extracto de suelo regularmente es clave.",
+      "💡 Calcular el SAR (Relación de Absorción de Sodio) del agua de riego permite predecir problemas de sodificación del suelo."
+    ]
+  },
+  "otro": {
+    "nombre": "Otra Industria",
+    "icono": "🏭",
+    "procesos": [],
+    "bienvenida": "¡Hola! Cuéntame sobre tu planta en el chat y te guiaré para completar el formulario paso a paso.",
+    "tips": []
+  }
+}
