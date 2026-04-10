@@ -59,42 +59,38 @@ st.markdown("""
 
 # ─── Google Sheets Integration ───
 def save_lead_to_sheets(data: dict):
-    """Guarda el lead en Google Sheets si las credenciales están configuradas."""
+    """Guarda el lead via Google Apps Script (no requiere API keys)."""
     try:
-        creds_json = st.secrets.get("GOOGLE_SHEETS_CREDENTIALS", "")
-        sheet_url = st.secrets.get("GOOGLE_SHEET_URL", "")
-        if not creds_json or not sheet_url:
+        import urllib.request
+        import json as json_lib
+        
+        # REEMPLAZA con tu URL de Google Apps Script
+        SCRIPT_URL = "https://script.google.com/macros/s/TU_SCRIPT_ID_AQUI/exec"
+        
+        if "TU_SCRIPT_ID" in SCRIPT_URL:
             return False
         
-        import gspread
-        from google.oauth2.service_account import Credentials
+        payload = json_lib.dumps({
+            "timestamp": datetime.now().isoformat(),
+            "email": data.get("email", ""),
+            "industry": data.get("industry", ""),
+            "consumption": str(data.get("consumption", "")),
+            "production": str(data.get("production", "")),
+            "recycle_pct": str(data.get("recycle_pct", "")),
+            "treatment": data.get("has_treatment", ""),
+            "score": str(data.get("score", "")),
+            "grade": data.get("grade", ""),
+            "savings": str(data.get("potential_savings", "")),
+            "source": data.get("source", "streamlit"),
+        }).encode("utf-8")
         
-        creds_dict = json.loads(creds_json)
-        scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-        credentials = Credentials.from_service_account_info(creds_dict, scopes=scopes)
-        gc = gspread.authorize(credentials)
-        
-        sheet = gc.open_by_url(sheet_url).sheet1
-        
-        row = [
-            datetime.now().isoformat(),
-            data.get("email", ""),
-            data.get("industry", ""),
-            data.get("consumption", ""),
-            data.get("production", ""),
-            data.get("recycle_pct", ""),
-            data.get("has_treatment", ""),
-            data.get("score", ""),
-            data.get("grade", ""),
-            data.get("potential_savings", ""),
-            data.get("source", "calculator"),
-        ]
-        sheet.append_row(row)
+        req = urllib.request.Request(SCRIPT_URL, data=payload,
+            headers={"Content-Type": "application/json"}, method="POST")
+        urllib.request.urlopen(req, timeout=10)
         return True
-    except Exception as e:
+    except Exception:
         return False
-
-
+        
 # ─── Scoring Engine ───
 BENCHMARKS = {
     "avicola": {"best": 5, "avg": 12, "worst": 25, "unit": "L/1000 huevos", "prod_unit": "miles de huevos/día", "savings_mult": 0.6},
