@@ -65,7 +65,7 @@ def save_lead_to_sheets(data: dict):
         import json as json_lib
         
         # REEMPLAZA con tu URL de Google Apps Script
-        SCRIPT_URL = "https://script.google.com/macros/s/TU_SCRIPT_ID_AQUI/exec"
+        SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwi59W0WAJpuAb8l9sMTpJ9HtNgVOnSsnENluWwdjUvbqDV6UHvxHHZD6kw3xHhNnkH/exec"
         
         if "TU_SCRIPT_ID" in SCRIPT_URL:
             return False
