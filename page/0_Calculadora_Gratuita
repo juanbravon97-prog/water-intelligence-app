@@ -157,10 +157,10 @@ with st.sidebar:
     st.title("Water Intelligence")
     st.caption("Calculadora de Eficiencia Hídrica")
     st.divider()
-    st.markdown("[🏠 Inicio](/)")
-    st.markdown("⚡ **Calculadora** (estás aquí)")
-    st.page_link("pages/1_Auditoria_Remota.py", label="📋 Auditoría Remota")
-    st.page_link("pages/2_Dashboard.py", label="📊 Dashboard")
+    st.page_link("app.py", label="🏠 Inicio")
+    st.page_link("pages/0_⚡_Calculadora_Gratuita.py", label="⚡ Calculadora")
+    st.page_link("pages/1_📋_Auditoría_Remota.py", label="📋 Auditoría Remota")
+    st.page_link("pages/2_📊_Dashboard.py", label="📊 Dashboard")
 
 # ─── Hero Banner ───
 st.markdown("""
@@ -343,7 +343,7 @@ if st.session_state.calc_results:
         col_a, col_b = st.columns(2)
         with col_a:
             if st.button("📋 Iniciar Auditoría Remota", type="primary", use_container_width=True):
-                st.switch_page("pages/1_Auditoria_Remota.py")
+                st.switch_page("pages/1_📋_Auditoría_Remota.py")
         with col_b:
             st.link_button("📅 Agendar Videollamada", "https://calendly.com", use_container_width=True)
 
