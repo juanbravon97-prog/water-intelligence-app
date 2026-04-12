@@ -1,4 +1,4 @@
-"""
+}"""
 Página de Auditoría Remota — Formulario guiado con chatbot integrado
 """
 
@@ -338,6 +338,7 @@ with main_col:
         ind_key = st.session_state.selected_industry
         ind = industries.get(ind_key, {})
         data = st.session_state.audit_data
+        procs = st.session_state.processes_data
         
         st.markdown(f"### {ind.get('icono', '🏭')} {data.get('empresa', 'Sin nombre')} — {data.get('ubicacion', 'Sin ubicación')}")
         
@@ -354,7 +355,7 @@ with main_col:
             st.write(f"- PTAR: {data.get('tiene_ptar', 'N/A')}")
             st.write(f"- Recicla agua: {data.get('recicla', 'N/A')}")
             st.write(f"- CE efluente: {data.get('ce_efluente', 'N/A')} dS/m")
-            st.write(f"- Procesos registrados: {sum(1 for p in st.session_state.processes_data if p.get('caudal_entrada'))}")
+            st.write(f"- Procesos registrados: {sum(1 for p in procs if p.get('caudal_entrada'))}")
             st.write(f"- Costo agua: {data.get('costo_agua', 'N/A')}")
         
         st.divider()
@@ -362,28 +363,292 @@ with main_col:
         col_btn1, col_btn2 = st.columns(2)
         with col_btn1:
             if st.button("✅ Enviar Auditoría", type="primary", use_container_width=True):
-                # Generate CSV for download
-                output = io.StringIO()
-                writer = csv.writer(output)
-                writer.writerow(["Campo", "Valor"])
-                writer.writerow(["Fecha", datetime.now().isoformat()])
-                writer.writerow(["Industria", ind.get("nombre", "")])
-                for k, v in data.items():
-                    writer.writerow([k, v])
-                writer.writerow([])
-                writer.writerow(["Proceso", "Tipo", "CE Max", "Entrada m3/d", "Salida m3/d", "CE entrada", "CE salida"])
-                for p in st.session_state.processes_data:
-                    writer.writerow([p["nombre"], p["tipo"], p["ce_max"], p.get("caudal_entrada",""), p.get("caudal_salida",""), p.get("ce_entrada",""), p.get("ce_salida","")])
                 
-                st.success("✅ ¡Auditoría enviada exitosamente! Recibirás tu diagnóstico preliminar en 48 horas hábiles.")
+                # ─── 1. ENVIAR A GOOGLE SHEETS via Apps Script ───
+                try:
+                    import urllib.request
+                    import json as json_lib
+                    
+                    # REEMPLAZA con tu URL de Google Apps Script
+                    SCRIPT_URL = st.secrets.get("APPS_SCRIPT_URL", "")
+                    
+                    if SCRIPT_URL:
+                        # Preparar datos de procesos como texto
+                        procs_text = "; ".join([
+                            f"{p['nombre']}: {p.get('caudal_entrada','-')} m3/d in, {p.get('caudal_salida','-')} m3/d out"
+                            for p in procs if p.get("caudal_entrada")
+                        ])
+                        
+                        payload = json_lib.dumps({
+                            "timestamp": datetime.now().isoformat(),
+                            "email": data.get("email", ""),
+                            "industry": ind.get("nombre", ""),
+                            "consumption": data.get("consumo_fresca", ""),
+                            "production": data.get("produccion", ""),
+                            "recycle_pct": "",
+                            "treatment": data.get("tiene_ptar", ""),
+                            "score": "",
+                            "grade": "",
+                            "savings": "",
+                            "source": "auditoria_completa",
+                            "empresa": data.get("empresa", ""),
+                            "ubicacion": data.get("ubicacion", ""),
+                            "contacto": data.get("contacto", ""),
+                            "telefono": data.get("telefono", ""),
+                            "fuente_agua": data.get("fuente", ""),
+                            "ce_fresca": data.get("ce_fresca", ""),
+                            "tipo_tratamiento": data.get("tipo_tratamiento", ""),
+                            "ce_efluente": data.get("ce_efluente", ""),
+                            "costo_agua": data.get("costo_agua", ""),
+                            "procesos": procs_text,
+                            "notas": data.get("notas", ""),
+                            "notify_email": "true",
+                        }).encode("utf-8")
+                        
+                        req = urllib.request.Request(
+                            SCRIPT_URL, data=payload,
+                            headers={"Content-Type": "application/json"}, method="POST"
+                        )
+                        urllib.request.urlopen(req, timeout=15)
+                        sheets_ok = True
+                    else:
+                        sheets_ok = False
+                except Exception as e:
+                    sheets_ok = False
+                
+                # ─── 2. GENERAR PDF DIAGNÓSTICO PRELIMINAR ───
+                try:
+                    from reportlab.lib.pagesizes import letter
+                    from reportlab.lib.units import inch, cm
+                    from reportlab.lib.colors import HexColor
+                    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+                    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+                    from reportlab.lib.enums import TA_CENTER, TA_LEFT
+                    
+                    pdf_buffer = io.BytesIO()
+                    doc = SimpleDocTemplate(pdf_buffer, pagesize=letter,
+                        topMargin=1.5*cm, bottomMargin=1.5*cm, leftMargin=2*cm, rightMargin=2*cm)
+                    
+                    styles = getSampleStyleSheet()
+                    
+                    # Custom styles
+                    title_style = ParagraphStyle('CustomTitle', parent=styles['Title'],
+                        fontSize=22, textColor=HexColor('#0B6E4F'), spaceAfter=6)
+                    subtitle_style = ParagraphStyle('CustomSubtitle', parent=styles['Normal'],
+                        fontSize=11, textColor=HexColor('#8A8A82'), spaceAfter=20)
+                    heading_style = ParagraphStyle('CustomHeading', parent=styles['Heading2'],
+                        fontSize=14, textColor=HexColor('#1A1A18'), spaceBefore=16, spaceAfter=8,
+                        borderPadding=(0, 0, 0, 4), borderWidth=0, borderColor=HexColor('#0B6E4F'),
+                        leftIndent=0)
+                    body_style = ParagraphStyle('CustomBody', parent=styles['Normal'],
+                        fontSize=10, textColor=HexColor('#3A3A36'), leading=15, spaceAfter=6)
+                    bold_style = ParagraphStyle('BoldBody', parent=body_style, 
+                        fontName='Helvetica-Bold', textColor=HexColor('#1A1A18'))
+                    small_style = ParagraphStyle('Small', parent=styles['Normal'],
+                        fontSize=8, textColor=HexColor('#8A8A82'), spaceAfter=4)
+                    
+                    elements = []
+                    
+                    # Header
+                    elements.append(Paragraph("💧 Water Intelligence", title_style))
+                    elements.append(Paragraph("Diagnóstico Preliminar de Eficiencia Hídrica", subtitle_style))
+                    elements.append(HRFlowable(width="100%", thickness=2, color=HexColor('#0B6E4F')))
+                    elements.append(Spacer(1, 12))
+                    
+                    # Company info
+                    elements.append(Paragraph("Datos de la Planta", heading_style))
+                    
+                    info_data = [
+                        ["Empresa:", data.get("empresa", "N/A"), "Ubicación:", data.get("ubicacion", "N/A")],
+                        ["Industria:", ind.get("nombre", "N/A"), "Producción:", data.get("produccion", "N/A")],
+                        ["Contacto:", data.get("contacto", "N/A"), "Email:", data.get("email", "N/A")],
+                        ["Fuente de agua:", data.get("fuente", "N/A"), "Consumo:", f"{data.get('consumo_fresca', 'N/A')} m³/día"],
+                        ["PTAR:", data.get("tiene_ptar", "N/A"), "CE agua fresca:", f"{data.get('ce_fresca', 'N/A')} dS/m"],
+                    ]
+                    
+                    info_table = Table(info_data, colWidths=[1.8*inch, 2.2*inch, 1.5*inch, 2*inch])
+                    info_table.setStyle(TableStyle([
+                        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                        ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
+                        ('FONTSIZE', (0, 0), (-1, -1), 9),
+                        ('TEXTCOLOR', (0, 0), (0, -1), HexColor('#6B6B63')),
+                        ('TEXTCOLOR', (2, 0), (2, -1), HexColor('#6B6B63')),
+                        ('TEXTCOLOR', (1, 0), (1, -1), HexColor('#1A1A18')),
+                        ('TEXTCOLOR', (3, 0), (3, -1), HexColor('#1A1A18')),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                        ('TOPPADDING', (0, 0), (-1, -1), 4),
+                        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ]))
+                    elements.append(info_table)
+                    elements.append(Spacer(1, 12))
+                    
+                    # Processes table
+                    procs_with_data = [p for p in procs if p.get("caudal_entrada")]
+                    if procs_with_data:
+                        elements.append(Paragraph("Inventario de Procesos", heading_style))
+                        
+                        proc_header = ["Proceso", "Tipo", "Entrada m³/d", "Salida m³/d", "CE máx (dS/m)"]
+                        proc_rows = [proc_header]
+                        total_in = 0
+                        total_out = 0
+                        for p in procs_with_data:
+                            inp = float(p.get("caudal_entrada", 0) or 0)
+                            out = float(p.get("caudal_salida", 0) or 0)
+                            total_in += inp
+                            total_out += out
+                            proc_rows.append([
+                                p["nombre"], p["tipo"],
+                                f"{inp:.1f}" if inp else "-",
+                                f"{out:.1f}" if out else "-",
+                                str(p.get("ce_max", "")),
+                            ])
+                        proc_rows.append(["TOTAL", "", f"{total_in:.1f}", f"{total_out:.1f}", ""])
+                        
+                        proc_table = Table(proc_rows, colWidths=[2.5*inch, 1.2*inch, 1.1*inch, 1.1*inch, 1.1*inch])
+                        proc_table.setStyle(TableStyle([
+                            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#0B6E4F')),
+                            ('TEXTCOLOR', (0, 0), (-1, 0), HexColor('#FFFFFF')),
+                            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                            ('FONTSIZE', (0, 0), (-1, -1), 9),
+                            ('BACKGROUND', (0, -1), (-1, -1), HexColor('#E6F5F0')),
+                            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+                            ('GRID', (0, 0), (-1, -1), 0.5, HexColor('#E0DED6')),
+                            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                            ('TOPPADDING', (0, 0), (-1, -1), 4),
+                            ('ALIGN', (2, 0), (-1, -1), 'CENTER'),
+                        ]))
+                        elements.append(proc_table)
+                        elements.append(Spacer(1, 12))
+                    
+                    # Quick analysis
+                    elements.append(Paragraph("Análisis Preliminar", heading_style))
+                    
+                    consumo = float(data.get("consumo_fresca", 0) or 0)
+                    tiene_ptar = data.get("tiene_ptar", "")
+                    recicla = data.get("recicla", "")
+                    
+                    # Generate observations
+                    observations = []
+                    if consumo > 0 and total_in > 0:
+                        agua_no_contab = max(0, consumo - total_in)
+                        pct_no_contab = (agua_no_contab / consumo * 100) if consumo > 0 else 0
+                        if pct_no_contab > 10:
+                            observations.append(f"⚠ Agua no contabilizada: {pct_no_contab:.0f}% del consumo total ({agua_no_contab:.0f} m³/día no está asignado a ningún proceso). Esto sugiere fugas, procesos no mapeados, o imprecisión en las estimaciones.")
+                        else:
+                            observations.append(f"✅ Balance hídrico razonablemente cerrado: {pct_no_contab:.0f}% de agua no contabilizada.")
+                    
+                    if tiene_ptar == "No":
+                        observations.append("⚠ Sin planta de tratamiento: toda el agua residual se descarga sin tratar. Evaluar instalación de PTAR básica o al menos sistema de sedimentación.")
+                    
+                    if recicla == "No" or recicla == "":
+                        observations.append("⚠ Sin reciclaje de agua: oportunidad significativa de reducir consumo de agua fresca reusando efluentes tratados en procesos de menor exigencia.")
+                    elif recicla == "Sí":
+                        observations.append("✅ Ya recicla agua — evaluar si se puede aumentar la tasa de reúso segregando corrientes por calidad.")
+                    
+                    ce_efl = data.get("ce_efluente", "")
+                    if ce_efl:
+                        try:
+                            ce_val = float(ce_efl)
+                            if ce_val > 3.0:
+                                observations.append(f"⚠ CE del efluente elevada ({ce_val} dS/m). El agua reciclada necesita desalinización (NF o RO) antes de usarse en procesos sensibles.")
+                            elif ce_val > 1.5:
+                                observations.append(f"⚡ CE del efluente moderada ({ce_val} dS/m). Puede reusarse en procesos con CE tolerada > {ce_val} dS/m sin tratamiento adicional de sales.")
+                            else:
+                                observations.append(f"✅ CE del efluente baja ({ce_val} dS/m). Apta para reúso en la mayoría de procesos.")
+                        except ValueError:
+                            pass
+                    
+                    observations.append("📋 Próximo paso recomendado: agendar videollamada para revisar estos resultados y definir el plan de acción personalizado.")
+                    
+                    for obs in observations:
+                        elements.append(Paragraph(obs, body_style))
+                        elements.append(Spacer(1, 4))
+                    
+                    elements.append(Spacer(1, 20))
+                    elements.append(HRFlowable(width="100%", thickness=1, color=HexColor('#E0DED6')))
+                    elements.append(Spacer(1, 8))
+                    elements.append(Paragraph(f"Water Intelligence · Diagnóstico generado el {datetime.now().strftime('%d/%m/%Y %H:%M')} · Este es un análisis preliminar basado en los datos proporcionados.", small_style))
+                    elements.append(Paragraph("Para el diagnóstico completo con Water Pinch Analysis, balance de masa y recomendaciones priorizadas, contacte a su consultor.", small_style))
+                    
+                    doc.build(elements)
+                    pdf_bytes = pdf_buffer.getvalue()
+                    pdf_ok = True
+                except ImportError:
+                    # reportlab not installed — generate simple text version
+                    pdf_text = f"""WATER INTELLIGENCE — Diagnóstico Preliminar
+{'='*50}
+Fecha: {datetime.now().strftime('%d/%m/%Y %H:%M')}
+
+DATOS DE LA PLANTA
+Empresa: {data.get('empresa', 'N/A')}
+Ubicación: {data.get('ubicacion', 'N/A')}
+Industria: {ind.get('nombre', 'N/A')}
+Producción: {data.get('produccion', 'N/A')}
+Consumo agua fresca: {data.get('consumo_fresca', 'N/A')} m³/día
+Fuente: {data.get('fuente', 'N/A')}
+PTAR: {data.get('tiene_ptar', 'N/A')}
+Recicla agua: {data.get('recicla', 'N/A')}
+
+PROCESOS REGISTRADOS
+"""
+                    for p in procs:
+                        if p.get("caudal_entrada"):
+                            pdf_text += f"  - {p['nombre']}: {p.get('caudal_entrada','-')} m³/d entrada, {p.get('caudal_salida','-')} m³/d salida\n"
+                    
+                    pdf_text += f"""
+ANÁLISIS PRELIMINAR
+{'─'*40}
+"""
+                    for obs in observations:
+                        pdf_text += f"{obs}\n\n"
+                    
+                    pdf_text += """
+─────────────────────────────────────────
+Water Intelligence · Gestión Hídrica Predictiva
+Este es un análisis preliminar. Para el diagnóstico completo, contacte a su consultor.
+"""
+                    pdf_bytes = pdf_text.encode("utf-8")
+                    pdf_ok = True
+                except Exception as e:
+                    pdf_ok = False
+                    pdf_bytes = None
+                
+                # ─── 3. MOSTRAR RESULTADOS ───
+                if sheets_ok:
+                    st.success("✅ ¡Auditoría enviada exitosamente! Los datos fueron registrados y el equipo de Water Intelligence ha sido notificado.")
+                else:
+                    st.warning("⚠ Auditoría guardada localmente. Configure APPS_SCRIPT_URL en Streamlit Secrets para envío automático.")
+                
                 st.balloons()
                 
-                st.download_button(
-                    "📥 Descargar copia de los datos (CSV)",
-                    data=output.getvalue(),
-                    file_name=f"auditoria_{data.get('empresa','planta').replace(' ','_')}_{datetime.now().strftime('%Y%m%d')}.csv",
-                    mime="text/csv",
-                )
+                # Download buttons
+                dl_col1, dl_col2 = st.columns(2)
+                with dl_col1:
+                    if pdf_ok and pdf_bytes:
+                        fname = f"diagnostico_{data.get('empresa','planta').replace(' ','_')}_{datetime.now().strftime('%Y%m%d')}"
+                        if isinstance(pdf_bytes, bytes) and pdf_bytes[:4] == b'%PDF':
+                            st.download_button("📄 Descargar Diagnóstico (PDF)", data=pdf_bytes,
+                                file_name=f"{fname}.pdf", mime="application/pdf")
+                        else:
+                            st.download_button("📄 Descargar Diagnóstico (TXT)", data=pdf_bytes,
+                                file_name=f"{fname}.txt", mime="text/plain")
+                with dl_col2:
+                    # CSV backup
+                    csv_output = io.StringIO()
+                    csv_writer = csv.writer(csv_output)
+                    csv_writer.writerow(["Campo", "Valor"])
+                    csv_writer.writerow(["Fecha", datetime.now().isoformat()])
+                    csv_writer.writerow(["Industria", ind.get("nombre", "")])
+                    for k, v in data.items():
+                        csv_writer.writerow([k, v])
+                    csv_writer.writerow([])
+                    csv_writer.writerow(["Proceso", "Tipo", "CE Max", "Entrada m3/d", "Salida m3/d", "CE entrada", "CE salida"])
+                    for p in procs:
+                        csv_writer.writerow([p["nombre"], p["tipo"], p["ce_max"], p.get("caudal_entrada",""), p.get("caudal_salida",""), p.get("ce_entrada",""), p.get("ce_salida","")])
+                    
+                    st.download_button("📥 Descargar datos (CSV)", data=csv_output.getvalue(),
+                        file_name=f"auditoria_{data.get('empresa','planta').replace(' ','_')}_{datetime.now().strftime('%Y%m%d')}.csv",
+                        mime="text/csv")
         
         with col_btn2:
             if st.button("← Volver a editar", use_container_width=True):
@@ -393,8 +658,8 @@ with main_col:
         st.markdown("""
         <div style="margin-top: 1rem; padding: 1rem; background: #E6F5F0; border-radius: 8px; font-size: 0.85rem; color: #095C4B;">
             <strong>¿Qué sigue?</strong><br>
-            1. Nuestro equipo revisa tus datos en 24h<br>
-            2. Recibes un diagnóstico preliminar con quick wins en 48h<br>
+            1. Nuestro equipo recibe tus datos automáticamente<br>
+            2. Recibes un diagnóstico preliminar en PDF (descárgalo arriba)<br>
             3. Agendamos una videollamada para revisar resultados juntos<br>
             4. Entregamos el informe completo + dashboard en 2-3 semanas
         </div>
