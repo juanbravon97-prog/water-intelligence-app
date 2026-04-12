@@ -416,7 +416,51 @@ with main_col:
                 except Exception as e:
                     sheets_ok = False
                 
-                # ─── 2. GENERAR PDF DIAGNÓSTICO PRELIMINAR ───
+                # ─── 2. CALCULAR OBSERVACIONES (antes del PDF) ───
+                procs_with_data = [p for p in procs if p.get("caudal_entrada")]
+                total_in = 0
+                total_out = 0
+                for p in procs_with_data:
+                    total_in += float(p.get("caudal_entrada", 0) or 0)
+                    total_out += float(p.get("caudal_salida", 0) or 0)
+                
+                consumo = float(data.get("consumo_fresca", 0) or 0)
+                tiene_ptar = data.get("tiene_ptar", "")
+                recicla = data.get("recicla", "")
+                
+                observations = []
+                if consumo > 0 and total_in > 0:
+                    agua_no_contab = max(0, consumo - total_in)
+                    pct_no_contab = (agua_no_contab / consumo * 100) if consumo > 0 else 0
+                    if pct_no_contab > 10:
+                        observations.append(f"⚠ Agua no contabilizada: {pct_no_contab:.0f}% del consumo total ({agua_no_contab:.0f} m³/día no está asignado a ningún proceso). Esto sugiere fugas, procesos no mapeados, o imprecisión en las estimaciones.")
+                    else:
+                        observations.append(f"✅ Balance hídrico razonablemente cerrado: {pct_no_contab:.0f}% de agua no contabilizada.")
+                
+                if tiene_ptar == "No":
+                    observations.append("⚠ Sin planta de tratamiento: toda el agua residual se descarga sin tratar. Evaluar instalación de PTAR básica o al menos sistema de sedimentación.")
+                
+                if recicla == "No" or recicla == "":
+                    observations.append("⚠ Sin reciclaje de agua: oportunidad significativa de reducir consumo de agua fresca reusando efluentes tratados en procesos de menor exigencia.")
+                elif recicla == "Sí":
+                    observations.append("✅ Ya recicla agua — evaluar si se puede aumentar la tasa de reúso segregando corrientes por calidad.")
+                
+                ce_efl = data.get("ce_efluente", "")
+                if ce_efl:
+                    try:
+                        ce_val = float(ce_efl)
+                        if ce_val > 3.0:
+                            observations.append(f"⚠ CE del efluente elevada ({ce_val} dS/m). El agua reciclada necesita desalinización (NF o RO) antes de usarse en procesos sensibles.")
+                        elif ce_val > 1.5:
+                            observations.append(f"⚡ CE del efluente moderada ({ce_val} dS/m). Puede reusarse en procesos con CE tolerada > {ce_val} dS/m sin tratamiento adicional de sales.")
+                        else:
+                            observations.append(f"✅ CE del efluente baja ({ce_val} dS/m). Apta para reúso en la mayoría de procesos.")
+                    except ValueError:
+                        pass
+                
+                observations.append("📋 Próximo paso recomendado: agendar videollamada para revisar estos resultados y definir el plan de acción personalizado.")
+                
+                # ─── 3. GENERAR PDF DIAGNÓSTICO PRELIMINAR ───
                 try:
                     from reportlab.lib.pagesizes import letter
                     from reportlab.lib.units import inch, cm
@@ -483,19 +527,14 @@ with main_col:
                     elements.append(Spacer(1, 12))
                     
                     # Processes table
-                    procs_with_data = [p for p in procs if p.get("caudal_entrada")]
                     if procs_with_data:
                         elements.append(Paragraph("Inventario de Procesos", heading_style))
                         
                         proc_header = ["Proceso", "Tipo", "Entrada m³/d", "Salida m³/d", "CE máx (dS/m)"]
                         proc_rows = [proc_header]
-                        total_in = 0
-                        total_out = 0
                         for p in procs_with_data:
                             inp = float(p.get("caudal_entrada", 0) or 0)
                             out = float(p.get("caudal_salida", 0) or 0)
-                            total_in += inp
-                            total_out += out
                             proc_rows.append([
                                 p["nombre"], p["tipo"],
                                 f"{inp:.1f}" if inp else "-",
@@ -522,43 +561,6 @@ with main_col:
                     
                     # Quick analysis
                     elements.append(Paragraph("Análisis Preliminar", heading_style))
-                    
-                    consumo = float(data.get("consumo_fresca", 0) or 0)
-                    tiene_ptar = data.get("tiene_ptar", "")
-                    recicla = data.get("recicla", "")
-                    
-                    # Generate observations
-                    observations = []
-                    if consumo > 0 and total_in > 0:
-                        agua_no_contab = max(0, consumo - total_in)
-                        pct_no_contab = (agua_no_contab / consumo * 100) if consumo > 0 else 0
-                        if pct_no_contab > 10:
-                            observations.append(f"⚠ Agua no contabilizada: {pct_no_contab:.0f}% del consumo total ({agua_no_contab:.0f} m³/día no está asignado a ningún proceso). Esto sugiere fugas, procesos no mapeados, o imprecisión en las estimaciones.")
-                        else:
-                            observations.append(f"✅ Balance hídrico razonablemente cerrado: {pct_no_contab:.0f}% de agua no contabilizada.")
-                    
-                    if tiene_ptar == "No":
-                        observations.append("⚠ Sin planta de tratamiento: toda el agua residual se descarga sin tratar. Evaluar instalación de PTAR básica o al menos sistema de sedimentación.")
-                    
-                    if recicla == "No" or recicla == "":
-                        observations.append("⚠ Sin reciclaje de agua: oportunidad significativa de reducir consumo de agua fresca reusando efluentes tratados en procesos de menor exigencia.")
-                    elif recicla == "Sí":
-                        observations.append("✅ Ya recicla agua — evaluar si se puede aumentar la tasa de reúso segregando corrientes por calidad.")
-                    
-                    ce_efl = data.get("ce_efluente", "")
-                    if ce_efl:
-                        try:
-                            ce_val = float(ce_efl)
-                            if ce_val > 3.0:
-                                observations.append(f"⚠ CE del efluente elevada ({ce_val} dS/m). El agua reciclada necesita desalinización (NF o RO) antes de usarse en procesos sensibles.")
-                            elif ce_val > 1.5:
-                                observations.append(f"⚡ CE del efluente moderada ({ce_val} dS/m). Puede reusarse en procesos con CE tolerada > {ce_val} dS/m sin tratamiento adicional de sales.")
-                            else:
-                                observations.append(f"✅ CE del efluente baja ({ce_val} dS/m). Apta para reúso en la mayoría de procesos.")
-                        except ValueError:
-                            pass
-                    
-                    observations.append("📋 Próximo paso recomendado: agendar videollamada para revisar estos resultados y definir el plan de acción personalizado.")
                     
                     for obs in observations:
                         elements.append(Paragraph(obs, body_style))
